@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # ------------ [ Output Folder and Input Link ] ------------
-
 OUTPUT_DIR="/Your/Output/Folder/Path/Here"
 mkdir -p "$OUTPUT_DIR"
 
@@ -15,11 +14,7 @@ BLUE="\e[34m"
 GREEN="\e[32m"
 RESET="\e[0m"
 
-# Flag that remembers if the user chose to overwrite all existing files
-OVERWRITE_ALL=
-
 # ------------ [ Download And Processing ] ------------
-
 download_and_process() {
     local url="$1"
 
@@ -31,73 +26,29 @@ download_and_process() {
     echo -e "${GREEN}Processing Video...${RESET}"
 
     yt-dlp \
+        -f "bestvideo+bestaudio/best" \
         --no-check-certificate \
         --quiet \
         --no-warnings \
-        -f "bestvideo[height<=2160]+bestaudio/best" \
         -o "${OUTPUT_DIR}/${SANITIZED_TITLE}/%(title)s.%(ext)s" \
         --write-thumbnail \
         --no-mtime \
         "$url" || true
 
-    # --- Move video files with overwrite prompt ---
     for vidfile in "$DIR"/*.{mp4,mkv,webm}; do
         [ -e "$vidfile" ] || continue
         base="${vidfile%.*}"
         ext="${vidfile##*.}"
-        target="${base} - Re-Upload.${ext}"
-
-        if [ -e "$target" ]; then
-            if [[ -z "$OVERWRITE_ALL" ]]; then
-                read -p "File \"$target\" already exists. Overwrite all existing files? (y/n): " ans
-                case "$ans" in
-                    y|Y) OVERWRITE_ALL=1 ;;
-                    n|N) echo "Skipping $vidfile"; rm -f "$vidfile"; continue ;;
-                    *) echo "Skipping $vidfile"; rm -f "$vidfile"; continue ;;
-                esac
-            fi
-        fi
-
-        if [[ $OVERWRITE_ALL == 1 ]]; then
-            mv -f "$vidfile" "$target"
-        else
-            mv "$vidfile" "$target"
-        fi
+        mv "$vidfile" "${base} - Re-Upload.${ext}"
     done
 
-    # --- Move thumbnail files with overwrite prompt ---
     for thumb in "$DIR"/*.jpg "$DIR"/*.webp; do
         [ -e "$thumb" ] || continue
-        name=$(basename "$thumb")
-
-        if [[ "$name" == *"- Thumbnail."* ]]; then
-            continue
-        fi
-
-        base="${name%.*}"
-        ext="${name##*.}"
-        target="${DIR}/${base} - Thumbnail.${ext}"
-
-        if [ -e "$target" ]; then
-            if [[ -z "$OVERWRITE_ALL" ]]; then
-                read -p "File \"$target\" already exists. Overwrite all existing files? (y/n): " ans
-                case "$ans" in
-                    y|Y) OVERWRITE_ALL=1 ;;
-                    n|N) echo "Skipping $thumb"; rm -f "$thumb"; continue ;;
-                    *) echo "Skipping $thumb"; rm -f "$thumb"; continue ;;
-                esac
-            fi
-        fi
-
-        if [[ $OVERWRITE_ALL == 1 ]]; then
-            mv -f "$thumb" "$target"
-        else
-            mv "$thumb" "$target"
-        fi
+        base="${thumb%.*}"
+        ext="${thumb##*.}"
+        mv "$thumb" "${base} - Thumbnail.${ext}"
     done
 
-    # ------------ [ Gathering Information ] ------------
-    
     TITLE=$RAW_TITLE
     INFO_JSON=$(yt-dlp --skip-download --no-warnings "$url" -j)
     UPLOAD_DATE=$(echo "$INFO_JSON" | jq -r .upload_date)
