@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # ------------ [ Output Folder and Input Link ] ------------
+
 OUTPUT_DIR="/Your/Output/Folder/Path/Here"
 mkdir -p "$OUTPUT_DIR"
 
@@ -14,7 +15,8 @@ BLUE="\e[34m"
 GREEN="\e[32m"
 RESET="\e[0m"
 
-# ------------ [ Download And Processing ] ------------
+# ------------ [ Download & Processing ] ------------
+
 download_and_process() {
     local url="$1"
 
@@ -49,6 +51,8 @@ download_and_process() {
         mv "$thumb" "${base} - Thumbnail.${ext}"
     done
 
+    # ------------ [ Gathering Information ] ------------
+    
     TITLE=$RAW_TITLE
     INFO_JSON=$(yt-dlp --skip-download --no-warnings "$url" -j)
     UPLOAD_DATE=$(echo "$INFO_JSON" | jq -r .upload_date)
@@ -61,7 +65,7 @@ download_and_process() {
     else
         HAS_DESC=1
     fi
-
+    
     YEAR=${UPLOAD_DATE:0:4}
     MONTH_NUM=${UPLOAD_DATE:4:2}
     DAY=${UPLOAD_DATE:6:2}
@@ -78,6 +82,7 @@ download_and_process() {
     BRIEF_DESC=$(echo "$DESCRIPTION" | head -n1 | tr -d '\r' | awk '{$1=$1;print}')
 
     # ------------ [ Creating the Text File ] ------------
+    
     README_FILE="${DIR}/${TITLE} - Re-Upload Description.txt"
     README_CONTENT="This video was published on $DATE by $CHANNEL_NAME, [Short Description here]."
     if [[ $HAS_DESC -eq 1 ]]; then
@@ -101,6 +106,7 @@ $DESCRIPTION"
 }
 
 # ------------ [ Execution Loop ] ------------
+
 if [[ "$URL" == *"/playlist?"* || "$URL" == *"?list="* ]]; then
     mapfile -t VIDEO_IDS < <(yt-dlp --flat-playlist --get-id "$URL")
     TOTAL_VIDEOS=${#VIDEO_IDS[@]}
